@@ -72,21 +72,21 @@ function Publish-PSModuleNuget {
         [Switch]
         $PassThru
     )
-    
+
     begin {
         $Nuget = Resolve-NugetCommand -Cmdlet $PSCmdlet -ErrorAction Stop
         Write-Verbose "Nuget found at $($Nuget.Path)"
         $OutputPath = Convert-Path $OutputPath -ErrorAction Stop
         Write-Verbose "Output Path: $OutputPath"
     }
-    
+
     process {
-        if($PSCmdlet.ParameterSetName -eq 'NameAndVersion') {
+        if ($PSCmdlet.ParameterSetName -eq 'NameAndVersion') {
             $Params = @{
-                Cmdlet = $PSCmdlet
-                Name = $Name
+                Cmdlet          = $PSCmdlet
+                Name            = $Name
                 RequiredVersion = $RequiredVersion
-                ErrorAction = 'stop'
+                ErrorAction     = 'stop'
             }
             $InputObject = Resolve-PSModule @Params
         }
@@ -94,18 +94,18 @@ function Publish-PSModuleNuget {
         Write-Verbose "Using Module from $($InputObject.ModuleBase)"
 
         $Params = @{
-            IconUri = $IconUri
+            IconUri      = $IconUri
             ReleaseNotes = $ReleaseNotes
-            Module = $InputObject
-            Tags = $Tags
-            ProjectUri = $ProjectUri
-            LicenseUri = $LicenseUri
+            Module       = $InputObject
+            Tags         = $Tags
+            ProjectUri   = $ProjectUri
+            LicenseUri   = $LicenseUri
         }
         $PSData = Resolve-PSData @Params
 
         $Params = @{
-            Module = $InputObject
-            PSData = $PSData
+            Module      = $InputObject
+            PSData      = $PSData
             ErrorAction = 'stop'
         }
         $NuspecContents = Get-NuspecContents @Params
@@ -117,10 +117,15 @@ function Publish-PSModuleNuget {
             $NuspecContents | Set-Content -Path $NuspecPath -Force -Confirm:$false -WhatIf:$false -ErrorAction Stop
             $NupkgFilePath = Get-NupkgFilePath -Module $InputObject -Path $OutputPath -ErrorAction Stop
             Push-Location -StackName PSPublishHelperNugetPack -Path $TempPath -ErrorAction Stop
-            $Output = & $Nuget pack $NuspecPath -OutputDirectory $OutputPath -BasePath $TempPath -Verbosity detailed -NonInteractive -NoDefaultExcludes
-            Write-Verbose "Nuget Pack Output:"
-            foreach($Line in $Output) {
-                if($Line -notmatch 'NU5110|NU5111'){
+            if ($Nuget -match "^nuget") {
+                Write-Verbose "nuget pack $NuspecPath -OutputDirectory $OutputPath -BasePath $TempPath -Verbosity detailed -NonInteractive -NoDefaultExcludes"
+                $Output = & $Nuget pack $NuspecPath -OutputDirectory $OutputPath -BasePath $TempPath -Verbosity detailed -NonInteractive -NoDefaultExcludes
+            } else {
+                Write-Verbose "dotnet pack $NuspecPath --output $OutputPath -Verbosity detailed -nologo"
+                $Output = & $Nuget pack $NuspecPath --output $OutputPath -v detailed -nologo
+            }
+            foreach ($Line in $Output) {
+                if ($Line -notmatch 'NU5110|NU5111') {
                     Write-Verbose $Line
                 }
             }
