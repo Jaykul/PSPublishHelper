@@ -37,7 +37,15 @@ function Get-NuspecContents {
         }
 
         $LicenseUriText = if ($PSData.LicenseUri) {
-            '<licenseUrl>{0}</licenseUrl>' -f ($PSData.LicenseUri | Get-EscapedString)
+            if (($Uri = $PSData.LicenseUri -as [Uri]) -and -not $Uri.IsAbsoluteUri) {
+                if ($PSData.LicenseUri -notmatch "\\|/") {
+                    '<license type="expression">{0}</license>' -f ($PSData.LicenseUri | Get-EscapedString)
+                } else {
+                    '<license type="file">{0}</license>' -f ($PSData.LicenseUri | Get-EscapedString)
+                }
+            } else {
+                '<licenseUrl>{0}</licenseUrl>' -f ($PSData.LicenseUri | Get-EscapedString)
+            }
         }
         $ArgumentList.Add($LicenseUriText)
 
@@ -47,7 +55,11 @@ function Get-NuspecContents {
         $ArgumentList.Add($ProjectUriText)
 
         $IconUriText = if ($PSData.IconUri) {
-            '<iconUrl>{0}</iconUrl>' -f ($PSData.IconUri | Get-EscapedString)
+            if (($Uri = $PSData.IconUri -as [Uri]) -and -not $Uri.IsAbsoluteUri) {
+                '<icon>{0}</icon>' -f ($PSData.IconUri | Get-EscapedString)
+            } else {
+                '<iconUrl>{0}</iconUrl>' -f ($PSData.IconUri | Get-EscapedString)
+            }
         }
         $ArgumentList.Add($IconUriText)
 
